@@ -1,0 +1,193 @@
+<!-- <!DOCTYPE html>
+<html>
+ <head>
+   <title>My experiment</title>
+   <script src="https://unpkg.com/jspsych@8.2.3"></script>
+   <script src="https://unpkg.com/@jspsych/plugin-html-keyboard-response@2.1.0"></script>
+   <script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
+   <script src= "https://unpkg.com/@jspsych/plugin-survey@4.0.0"></script>
+   <link href="https://unpkg.com/jspsych@8.2.3/css/jspsych.css" rel="stylesheet" type="text/css" />
+   <link href="https://unpkg.com/@jspsych/plugin-survey@4.0.0/css/survey.min.css" rel="stylesheet" type="text/css" />
+ </head>
+ <body></body>
+ <script>
+
+
+
+
+   /* initialize jsPsych */
+   var jsPsych = initJsPsych();
+
+
+
+
+   /* create timeline */
+   var timeline = [];
+
+
+     /* preload images */
+   var preload = {
+     type: jsPsychPreload,
+     images: ['demonstration_images/DemonstrationA.png', 'demonstration_images/DemonstrationP.png']
+   };
+   timeline.push(preload);
+
+
+  /* define welcome message trial */
+   var welcome = {
+     type: jsPsychHtmlKeyboardResponse,
+     stimulus: "Welcome to our experiment! Press any key to begin."
+   };
+   timeline.push(welcome);
+  
+   /* define instructions trial */
+   var instructions = {
+     type: jsPsychHtmlKeyboardResponse,
+     stimulus: `
+       <p style='width: 60vw;' >In this experiment, you will be presented with an image with items that are in the same category (e.g. clothes, shapes, food). Your task will be to identify whether there are any items that do not fit that category. If there are items that do not fit the category, click on them. If all items fit the category, then click on the absent button.</p>
+      
+       <p style='width: 60vw; display: flex; justify-content: center;  align-items: center;'> Click any key to see the demonstration.</p>
+     `,
+   };
+   timeline.push(instructions);
+
+
+   /* demonstration portion for present */
+   var demonstration_p = {
+    type: jsPsychHtmlKeyboardResponse,
+     stimulus: `
+       <p <div style='float: center;'><img style='width: 80vw;' src='./demonstration_images/DemonstrationP.png'></img> </p>,`
+     };
+     timeline.push(demonstration_p);
+
+
+      /* demonstration portion for absent */
+   var demonstration_a = {
+    type: jsPsychHtmlKeyboardResponse,
+     stimulus: `
+       <p <div style='float: center;'><img style='width: 80vw;' src='./demonstration_images/DemonstrationA.png'></img> </p>,`
+     };
+     timeline.push(demonstration_a);
+   /* define practice trial instruction trial */
+  var practice_trial_intructions= {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <p style='width: 60vw;' >First, you will complete 2 practice trials. In the practice trial we will provide the answer for both trials. </p>
+      <p style='width: 60vw; display: flex; justify-content: center;  align-items: center;'>  Click on any key to continue to the practice trials. </p>
+    `,
+  };
+  timeline.push(practice_trial_intructions);
+
+
+    var practice_trial_intructions_2= {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <p style='width: 60vw;' > On the next screen there will be photos of objects within this category. The category will be at the top of the screen. If there is an item that does not fit this category, please click on that “abnormal object.” If there is not an object outside of the category please press the “absent” button. </p>
+    
+      <p style='width: 60vw; display: flex; justify-content: center;  align-items: center;'>  Click any key to continue. </p>
+    `,
+  };
+  timeline.push(practice_trial_intructions_2);
+
+
+   /* define real trial instructions*/
+  var real_trial_intructions= {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <p style='width: 60vw;' >Now you are ready to begin the experiment! The procedure is the same as the practice trials but you will not receive your results after each trial. There will be 60 trials. </p>
+    
+      <p style='width: 60vw; display: flex; justify-content: center;  align-items: center;'>  There will be an opportunity to take a break halfway through the experiment. Try to do this as efficiently and accurately as possible. </p>
+
+
+<p style='width: 60vw; display: flex; justify-content: center;  align-items: center;'>  Press any key to continue! </p>
+    `,
+  };
+  timeline.push(real_trial_intructions);
+
+
+  /* mid experiment thing*/
+  var break_experiment_intructions= {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <p style='width: 60vw;' >You’re halfway through the experiment! If you want you can take a break, or you can continue. </p>
+    
+      <p style='width: 60vw; display: flex; justify-content: center;  align-items: center;'> Click to continue to the second half.</p>
+    `,
+  };
+  timeline.push(break_experiment_intructions);
+
+
+  /* end of trials */
+  var end_of_trials= {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <p style='width: 60vw;' >You’ve completed the experimental phase. Now we will ask a few demographic questions. </p>
+    
+      <p style='width: 60vw; display: flex; justify-content: center;  align-items: center;'> Click any key to continue.</p>
+    `,
+  };
+  timeline.push(end_of_trials);
+
+
+/* demographics issues hereeeeeeeee*/
+
+
+const trial = {
+ type: jsPsychSurvey,
+ survey_json: {
+   showQuestionNumbers: false,
+   elements:
+     [
+       {
+         type: 'radiogroup',
+         title: "How old are you?",
+         name: 'Age',
+         choices: ['younger than 20', 'between 20-30', 'between 30-40', 'between 40-50', 'between 50-60', 'older than 60']
+       },
+         {
+         type: 'radiogroup',
+         title: "What is your gender?",
+         name: 'Gender',
+         choices: ['female', 'male', 'non-binary/other']
+       },
+       {
+         type: 'radiogroup',
+         title: "On a scale of 1-5, how accurate do you think you were?",
+         name: 'Personal-accuracy_perspective',
+         choices: ['1', '2', '3', '4', '5']
+       },
+        {
+         type: 'radiogroup',
+         title: "How difficult was it to identify the targets?",
+         name: 'Difficulty_perspective',
+         choices: ['1', '2', '3', '4', '5']
+       }
+   ]
+ }
+};
+timeline.push(trial);
+
+
+  /* end of experiment */
+  var congratulation_page= {
+    type: jsPsychHtmlKeyboardResponse,
+    stimulus: `
+      <p style='width: 60vw;' >Congratulations! You have completed the experiment. </p>
+    
+      <p style='width: 60vw; display: flex; justify-content: center;  align-items: center;'> Thank you for your participation!.</p>
+    `,
+  };
+  timeline.push(congratulation_page);
+
+
+
+
+    /* start the experiment */
+   jsPsych.run(timeline);
+
+
+
+
+</script>
+</html>
+ -->
