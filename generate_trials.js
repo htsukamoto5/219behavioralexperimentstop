@@ -28,12 +28,15 @@ const path = require("path");
 
 // ─── CONFIGURATION ────────────────────────────────────────────────────────────
 
-const STIMULI_DIR = path.join(__dirname, "public", "stimuli");
-const OUTPUT_FILE = path.join(__dirname, "public", "trials.json");
+const STIMULI_DIR = path.join(__dirname, "stimuli");
+const OUTPUT_FILE = path.join(__dirname, "trials.json");
 
 // List the category folder names that should have rotation applied.
 // All other categories will have rotation locked to 0.
 const ROTATE_CATEGORIES = [
+  "spoons",
+  "forks",
+  "keychains",
   // add more as needed
 ];
 

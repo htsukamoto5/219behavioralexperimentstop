@@ -1,36 +1,10 @@
 {
-  "private": true,
+  "name": "odd-one-out-experiment",
+  "version": "1.0.0",
   "scripts": {
-    "jspsych": "jspsych -e experiment",
-    "start": "npm run jspsych -- run",
-    "build": "npm run jspsych -- build",
-    "jatos": "npm run jspsych -- build --jatos"
-  },
-  "dependencies": {
-    "@jspsych-contrib/plugin-visual-search-click-target": "^0.1.0",
-    "@jspsych/extension-tobii": "^0.1.1",
-    "@jspsych/plugin-call-function": "^2.1.0",
-    "@jspsych/plugin-fullscreen": "^1.1.2",
-    "@jspsych/plugin-html-keyboard-response": "^1.1.2",
-    "@jspsych/plugin-image-keyboard-response": "^2.1.0",
-    "@jspsych/plugin-instructions": "^2.1.0",
-    "@jspsych/plugin-preload": "^1.1.2",
-    "@jspsych/plugin-tobii-calibration": "^0.1.1",
-    "@jspsych/plugin-tobii-user-position": "^0.1.1",
-    "@jspsych/plugin-tobii-validation": "^0.1.1",
-    "jspsych": "^8.2.3"
+    "start": "serve ."
   },
   "devDependencies": {
-    "jspsych-builder": "^4.4.0"
-  },
-  "browserslist": ">0.25%, not dead",
-  "overrides": {
-    "webpack-dev-server": "^5.2.1"
-  },
-  "jspsych": {
-    "assets": [
-    "stimuli/",
-    "trials.json"
-  ]
+    "serve": "^14.2.3"
   }
 }
