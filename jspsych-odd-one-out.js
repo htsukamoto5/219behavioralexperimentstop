@@ -250,7 +250,7 @@ var jsPsychOddOneOut = (function (jspsych) {
             'Are ALL of these <span>' + trial.category.toUpperCase() + '</span> ?',
           '</div>',
           '<div id="oot-search-area"></div>',
-          '<div id="oot-answer-banner" id="oot-answer-banner"></div>',
+          '<div id="oot-answer-banner"></div>',
           '<div id="oot-bottom-bar">',
             '<button class="oot-btn" id="oot-all-fit-btn">&#10003; All fit the category</button>',
             '<button class="oot-btn" id="oot-confirm-btn">Confirm &rarr;</button>',
@@ -417,4 +417,4 @@ var jsPsychOddOneOut = (function (jspsych) {
   return OddOneOutPlugin;
 
 // FIX: use the global name the CDN actually exposes
-})(jspsych);
+})(jsPsych);
