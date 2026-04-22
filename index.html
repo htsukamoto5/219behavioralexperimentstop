@@ -16,6 +16,9 @@
   <!-- Custom odd-one-out plugin -->
   <script src="jspsych-odd-one-out.js"></script>
 
+  <!-- Pre-generated trial data (defines global `TRIALS`) -->
+  <script src="trials.js"></script>
+
   <style>
     body { margin: 0; padding: 0; background: #ffffff; }
     .exp-text {
@@ -153,252 +156,238 @@ var jsPsych = initJsPsych({
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
-// LOAD TRIALS.JSON THEN BUILD TIMELINE
+// BUILD TIMELINE FROM PRE-GENERATED TRIAL DATA
 // ═══════════════════════════════════════════════════════════════════════════════
 
-fetch("trials.json")
-  .then(function (r) {
-    if (!r.ok) throw new Error("Could not load trials.json (status " + r.status + ").");
-    return r.json();
-  })
-  .then(function (allTrials) {
+if (typeof TRIALS === "undefined") {
+  throw new Error("Could not find TRIALS global. Make sure trials.js is loaded before this script, and that you have run `node generate_trials.js` to generate it.");
+}
+var allTrials = TRIALS;
 
-    var experimentalTrials = selectExperimentalTrials(allTrials);
+var experimentalTrials = selectExperimentalTrials(allTrials);
 
-    // Preload all images the participant will see (practice + experimental)
-    var practicePresent = findTrial(allTrials, "present", CONFIG.practice_present_folder);
-    var practiceAbsent  = findTrial(allTrials, "absent",  CONFIG.practice_absent_folder);
+// Preload all images the participant will see (practice + experimental)
+var practicePresent = findTrial(allTrials, "present", CONFIG.practice_present_folder);
+var practiceAbsent  = findTrial(allTrials, "absent",  CONFIG.practice_absent_folder);
 
-    var allImagePaths = [];
-    [practicePresent, practiceAbsent].forEach(function (t) {
-      if (!t) return;
-      t.images.forEach(function (img) {
-        allImagePaths.push(CONFIG.stimuli_base + t.presence_folder + "/" + t.category + "/" + img.file);
-      });
-    });
-    experimentalTrials.forEach(function (t) {
-      t.images.forEach(function (img) {
-        allImagePaths.push(CONFIG.stimuli_base + t.presence_folder + "/" + t.category + "/" + img.file);
-      });
-    });
+var allImagePaths = [];
+[practicePresent, practiceAbsent].forEach(function (t) {
+  if (!t) return;
+  t.images.forEach(function (img) {
+    allImagePaths.push(CONFIG.stimuli_base + t.presence_folder + "/" + t.category + "/" + img.file);
+  });
+});
+experimentalTrials.forEach(function (t) {
+  t.images.forEach(function (img) {
+    allImagePaths.push(CONFIG.stimuli_base + t.presence_folder + "/" + t.category + "/" + img.file);
+  });
+});
 
-    // ── TIMELINE ─────────────────────────────────────────────────────────────
-    var timeline = [];
+// ── TIMELINE ─────────────────────────────────────────────────────────────
+var timeline = [];
 
-    // ── Preload ───────────────────────────────────────────────────────────────
-    timeline.push({
-      type: jsPsychPreload,
-      images: allImagePaths.concat([
-        CONFIG.demo_present_image,
-        CONFIG.demo_absent_image,
-      ]),
-    });
+// ── Preload ───────────────────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychPreload,
+  images: allImagePaths.concat([
+    CONFIG.demo_present_image,
+    CONFIG.demo_absent_image,
+  ]),
+});
 
-    // ── Welcome ───────────────────────────────────────────────────────────────
-    timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: "<div class='exp-text'><p>Welcome to our experiment!</p><p>Press any key to begin.</p></div>",
-    });
+// ── Welcome ───────────────────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: "<div class='exp-text'><p>Welcome to our experiment!</p><p>Press any key to begin.</p></div>",
+});
 
-    // ── Instructions ──────────────────────────────────────────────────────────
-    timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: [
-        "<div class='exp-text'>",
-        "<p>In this experiment, you will be presented with images of items that are in the same category",
-        " (e.g. clothes, shapes, food).</p>",
-        "<p>Your task is to identify whether any item does <strong>not</strong> fit that category.</p>",
-        "<ul style='text-align:left;display:inline-block;line-height:2'>",
-        "<li>If an item does not fit, <strong>click on it</strong>.</li>",
-        "<li>If all items fit, click the <strong>\"All fit the category\"</strong> button.</li>",
-        "</ul>",
-        "<p>Press any key to see a demonstration.</p>",
-        "</div>",
-      ].join(""),
-    });
+// ── Instructions ──────────────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>In this experiment, you will be presented with images of items that are in the same category",
+    " (e.g. clothes, shapes, food).</p>",
+    "<p>Your task is to identify whether any item does <strong>not</strong> fit that category.</p>",
+    "<ul style='text-align:left;display:inline-block;line-height:2'>",
+    "<li>If an item does not fit, <strong>click on it</strong>.</li>",
+    "<li>If all items fit, click the <strong>\"All fit the category\"</strong> button.</li>",
+    "</ul>",
+    "<p>Press any key to see a demonstration.</p>",
+    "</div>",
+  ].join(""),
+});
 
-    // ── Demonstration: target present ─────────────────────────────────────────
-    timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: [
-        "<div class='exp-text'>",
-        "<p><strong>Example: one item does NOT fit the category.</strong></p>",
-        "<img style='width:80vw;' src='" + CONFIG.demo_present_image + "' alt='demonstration present' />",
-        "<p>Press any key to continue.</p>",
-        "</div>",
-      ].join(""),
-    });
+// ── Demonstration: target present ─────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p><strong>Example: one item does NOT fit the category.</strong></p>",
+    "<img style='width:80vw;' src='" + CONFIG.demo_present_image + "' alt='demonstration present' />",
+    "<p>Press any key to continue.</p>",
+    "</div>",
+  ].join(""),
+});
 
-    // ── Demonstration: target absent ──────────────────────────────────────────
-    timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: [
-        "<div class='exp-text'>",
-        "<p><strong>Example: all items fit the category.</strong></p>",
-        "<img style='width:80vw;' src='" + CONFIG.demo_absent_image + "' alt='demonstration absent' />",
-        "<p>Press any key to continue.</p>",
-        "</div>",
-      ].join(""),
-    });
+// ── Demonstration: target absent ──────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p><strong>Example: all items fit the category.</strong></p>",
+    "<img style='width:80vw;' src='" + CONFIG.demo_absent_image + "' alt='demonstration absent' />",
+    "<p>Press any key to continue.</p>",
+    "</div>",
+  ].join(""),
+});
 
-    // ── Practice instructions ─────────────────────────────────────────────────
-    timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: [
-        "<div class='exp-text'>",
-        "<p>First, you will complete <strong>2 practice trials</strong>.</p>",
-        "<p>In the practice trials, the correct answer will be shown after each response.</p>",
-        "<p>Press any key to continue to the practice trials.</p>",
-        "</div>",
-      ].join(""),
-    });
+// ── Practice instructions ─────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>First, you will complete <strong>2 practice trials</strong>.</p>",
+    "<p>In the practice trials, the correct answer will be shown after each response.</p>",
+    "<p>Press any key to continue to the practice trials.</p>",
+    "</div>",
+  ].join(""),
+});
 
-    timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: [
-        "<div class='exp-text'>",
-        "<p>On the next screen there will be photos of objects within a category.",
-        " The category will be shown at the top of the screen.</p>",
-        "<p>If there is an item that does not fit, click on it.",
-        " If all items fit, click the <strong>\"All fit the category\"</strong> button.</p>",
-        "<p>After selecting, click <strong>Confirm</strong> to lock in your answer.</p>",
-        "<p>Press any key to begin the practice.</p>",
-        "</div>",
-      ].join(""),
-    });
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>On the next screen there will be photos of objects within a category.",
+    " The category will be shown at the top of the screen.</p>",
+    "<p>If there is an item that does not fit, click on it.",
+    " If all items fit, click the <strong>\"All fit the category\"</strong> button.</p>",
+    "<p>After selecting, click <strong>Confirm</strong> to lock in your answer.</p>",
+    "<p>Press any key to begin the practice.</p>",
+    "</div>",
+  ].join(""),
+});
 
-    // ── Practice trial 1: target present (show_answer = true) ─────────────────
-    if (practicePresent) {
-      timeline.push(makeOddOneOutTrial(practicePresent, true));
-    }
+// ── Practice trial 1: target present (show_answer = true) ─────────────────
+if (practicePresent) {
+  timeline.push(makeOddOneOutTrial(practicePresent, true));
+}
 
-    // ── Practice trial 2: target absent (show_answer = true) ──────────────────
-    if (practiceAbsent) {
-      timeline.push(makeOddOneOutTrial(practiceAbsent, true));
-    }
+// ── Practice trial 2: target absent (show_answer = true) ──────────────────
+if (practiceAbsent) {
+  timeline.push(makeOddOneOutTrial(practiceAbsent, true));
+}
 
-    // ── Real trial instructions ───────────────────────────────────────────────
-    timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: [
-        "<div class='exp-text'>",
-        "<p>Now you are ready to begin the experiment!</p>",
-        "<p>The procedure is the same as the practice trials, but you will",
-        " <strong>not</strong> receive feedback after each trial.</p>",
-        "<p>There will be <strong>" + experimentalTrials.length + " trials</strong> in total.</p>",
-        "<p>There will be an opportunity to take a break halfway through.",
-        " Try to respond as efficiently and accurately as possible.</p>",
-        "<p>Press any key to begin!</p>",
-        "</div>",
-      ].join(""),
-    });
+// ── Real trial instructions ───────────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>Now you are ready to begin the experiment!</p>",
+    "<p>The procedure is the same as the practice trials, but you will",
+    " <strong>not</strong> receive feedback after each trial.</p>",
+    "<p>There will be <strong>" + experimentalTrials.length + " trials</strong> in total.</p>",
+    "<p>There will be an opportunity to take a break halfway through.",
+    " Try to respond as efficiently and accurately as possible.</p>",
+    "<p>Press any key to begin!</p>",
+    "</div>",
+  ].join(""),
+});
 
-    // ── Fullscreen (start just before experimental trials) ────────────────────
-    timeline.push({
-      type: jsPsychFullscreen,
-      fullscreen_mode: true,
-    });
+// ── Fullscreen (start just before experimental trials) ────────────────────
+timeline.push({
+  type: jsPsychFullscreen,
+  fullscreen_mode: true,
+});
 
-    // ── Experimental trials with halfway break ────────────────────────────────
-    experimentalTrials.forEach(function (trialData, idx) {
+// ── Experimental trials with halfway break ────────────────────────────────
+experimentalTrials.forEach(function (trialData, idx) {
 
-      // Insert break screen before the trial that follows break_after_trial
-      if (idx === CONFIG.break_after_trial) {
-        timeline.push({
-          type: jsPsychHtmlKeyboardResponse,
-          stimulus: [
-            "<div class='exp-text'>",
-            "<p>You're halfway through the experiment!</p>",
-            "<p>Feel free to take a short break if you need one.</p>",
-            "<p>Press any key when you are ready to continue.</p>",
-            "</div>",
-          ].join(""),
-        });
-      }
-
-      timeline.push(makeOddOneOutTrial(trialData, false));
-    });
-
-    // ── End of trials ─────────────────────────────────────────────────────────
+  // Insert break screen before the trial that follows break_after_trial
+  if (idx === CONFIG.break_after_trial) {
     timeline.push({
       type: jsPsychHtmlKeyboardResponse,
       stimulus: [
         "<div class='exp-text'>",
-        "<p>You've completed the experimental phase.</p>",
-        "<p>Now we will ask a few short demographic questions.</p>",
-        "<p>Press any key to continue.</p>",
+        "<p>You're halfway through the experiment!</p>",
+        "<p>Feel free to take a short break if you need one.</p>",
+        "<p>Press any key when you are ready to continue.</p>",
         "</div>",
       ].join(""),
     });
+  }
 
-    // ── Demographics survey ───────────────────────────────────────────────────
-    timeline.push({
-      type: jsPsychSurvey,
-      survey_json: {
-        showQuestionNumbers: false,
-        elements: [
-          {
-            type: "radiogroup",
-            title: "How old are you?",
-            name: "Age",
-            choices: [
-              "younger than 20",
-              "between 20–30",
-              "between 30–40",
-              "between 40–50",
-              "between 50–60",
-              "older than 60",
-            ],
-          },
-          {
-            type: "radiogroup",
-            title: "What is your gender?",
-            name: "Gender",
-            choices: ["Female", "Male", "Non-binary / other", "Prefer not to say"],
-          },
-          {
-            type: "radiogroup",
-            title: "On a scale of 1–5, how accurate do you think you were? (1 = very inaccurate, 5 = very accurate)",
-            name: "Personal_accuracy_perspective",
-            choices: ["1", "2", "3", "4", "5"],
-          },
-          {
-            type: "radiogroup",
-            title: "On a scale of 1–5, how difficult was it to identify the targets? (1 = very easy, 5 = very difficult)",
-            name: "Difficulty_perspective",
-            choices: ["1", "2", "3", "4", "5"],
-          },
+  timeline.push(makeOddOneOutTrial(trialData, false));
+});
+
+// ── End of trials ─────────────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>You've completed the experimental phase.</p>",
+    "<p>Now we will ask a few short demographic questions.</p>",
+    "<p>Press any key to continue.</p>",
+    "</div>",
+  ].join(""),
+});
+
+// ── Demographics survey ───────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychSurvey,
+  survey_json: {
+    showQuestionNumbers: false,
+    elements: [
+      {
+        type: "radiogroup",
+        title: "How old are you?",
+        name: "Age",
+        choices: [
+          "younger than 20",
+          "between 20–30",
+          "between 30–40",
+          "between 40–50",
+          "between 50–60",
+          "older than 60",
         ],
       },
-    });
+      {
+        type: "radiogroup",
+        title: "What is your gender?",
+        name: "Gender",
+        choices: ["Female", "Male", "Non-binary / other", "Prefer not to say"],
+      },
+      {
+        type: "radiogroup",
+        title: "On a scale of 1–5, how accurate do you think you were? (1 = very inaccurate, 5 = very accurate)",
+        name: "Personal_accuracy_perspective",
+        choices: ["1", "2", "3", "4", "5"],
+      },
+      {
+        type: "radiogroup",
+        title: "On a scale of 1–5, how difficult was it to identify the targets? (1 = very easy, 5 = very difficult)",
+        name: "Difficulty_perspective",
+        choices: ["1", "2", "3", "4", "5"],
+      },
+    ],
+  },
+});
 
-    // ── Congratulations ───────────────────────────────────────────────────────
-    timeline.push({
-      type: jsPsychHtmlKeyboardResponse,
-      stimulus: [
-        "<div class='exp-text'>",
-        "<p>Congratulations! You have completed the experiment.</p>",
-        "<p>Thank you for your participation!</p>",
-        "<p>Press any key to finish and save your data.</p>",
-        "</div>",
-      ].join(""),
-    });
+// ── Congratulations ───────────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>Congratulations! You have completed the experiment.</p>",
+    "<p>Thank you for your participation!</p>",
+    "<p>Press any key to finish and save your data.</p>",
+    "</div>",
+  ].join(""),
+});
 
-    // ── Run ───────────────────────────────────────────────────────────────────
-    jsPsych.run(timeline);
+// ── Run ───────────────────────────────────────────────────────────────────
+jsPsych.run(timeline);
 
-  })
-  .catch(function (err) {
-    document.body.innerHTML = [
-      "<div style='padding:2rem;font-family:system-ui,sans-serif;color:#c0392b'>",
-      "<h3>Error loading trials.json</h3>",
-      "<p>" + err.message + "</p>",
-      "<p>Make sure you have run <code>node generate_trials.js</code> first ",
-      "and are opening the experiment through a local server (npm start), ",
-      "not by double-clicking the HTML file.</p>",
-      "</div>",
-    ].join("");
-  });
 
 </script>
 </body>

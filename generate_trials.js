@@ -2,7 +2,8 @@
  * generate_trials.js
  *
  * Run this ONCE before the experiment to pre-generate all trial layouts.
- * It reads your stimuli folder, computes positions and rotations, and writes trials.json.
+ * It reads your stimuli folder, computes positions and rotations, and writes trials.js
+ * (defining a global `TRIALS` array that index.html loads via a <script> tag).
  *
  * Usage (from your project root in the VS Code terminal):
  *   node generate_trials.js
@@ -29,7 +30,7 @@ const path = require("path");
 // ─── CONFIGURATION ────────────────────────────────────────────────────────────
 
 const STIMULI_DIR = path.join(__dirname, "stimuli");
-const OUTPUT_FILE = path.join(__dirname, "trials.json");
+const OUTPUT_FILE = path.join(__dirname, "trials.js");
 
 // List the category folder names that should have rotation applied.
 // All other categories will have rotation locked to 0.
@@ -218,7 +219,7 @@ if (trials.length === 0) {
   process.exit(1);
 }
 
-fs.writeFileSync(OUTPUT_FILE, JSON.stringify(trials, null, 2));
+fs.writeFileSync(OUTPUT_FILE, "var TRIALS = " + JSON.stringify(trials, null, 2) + ";\n");
 
 console.log(
   "\nDone!" +

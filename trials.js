@@ -1,4 +1,4 @@
-[
+var TRIALS = [
   {
     "id": "present_abacuses_domino",
     "category": "abacuses_domino",
@@ -16591,4 +16591,4 @@
       }
     ]
   }
-]
+];
