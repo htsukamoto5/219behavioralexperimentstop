@@ -16,6 +16,9 @@
   <!-- Custom odd-one-out plugin -->
   <script src="jspsych-odd-one-out.js"></script>
 
+  <!-- Category definitions (defines global `CATEGORIES`) -->
+  <script src="categories.js"></script>
+
   <!-- Pre-generated trial data (defines global `TRIALS`) -->
   <script src="trials.js"></script>
 
@@ -119,17 +122,23 @@ function selectExperimentalTrials(allTrials) {
 
 /** Convert a trials.json entry into a jsPsych trial object */
 function makeOddOneOutTrial(trialData, showAnswer) {
+  // Look up the display label from CATEGORY_MAP using the category folder name
+  var categoryKey = trialData.category;
+  var categoryLabel = (CATEGORY_MAP[categoryKey] && CATEGORY_MAP[categoryKey].label)
+    ? CATEGORY_MAP[categoryKey].label
+    : trialData.category.toUpperCase(); // fallback to raw folder name
+
   return {
     type:           jsPsychOddOneOut,
-    category:       trialData.category,
+    category:       categoryLabel,        // ← now uses the human-readable label
     images:         trialData.images,
     base_path:      CONFIG.stimuli_base + trialData.presence_folder + "/" + trialData.category + "/",
     target_present: trialData.target_present,
     odd_file:       trialData.odd_file,
     show_answer:    showAnswer || false,
     data: {
-      trial_id:    trialData.id,
-      is_practice: showAnswer || false,
+      trial_id:       trialData.id,
+      is_practice:    showAnswer || false,
     },
   };
 }

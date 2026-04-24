@@ -261,7 +261,7 @@ var jsPsychOddOneOut = (function (jspsych) {
       display_element.innerHTML = [
         '<div id="oot-wrapper">',
           '<div id="oot-prompt">',
-            'Are ALL of these <span>' + trial.category.toUpperCase() + '</span> ?',
+            'Are ALL of these <span>' + trial.category.toUpperCase() + '</span> ? If not, click the item that does not fit the category.',
           '</div>',
           '<div id="oot-search-area"></div>',
           '<div id="oot-answer-banner"></div>',

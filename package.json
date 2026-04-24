@@ -1,0 +1,10 @@
+{
+  "name": "odd-one-out-experiment",
+  "version": "1.0.0",
+  "scripts": {
+    "start": "serve ."
+  },
+  "devDependencies": {
+    "serve": "^14.2.3"
+  }
+}
