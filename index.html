@@ -50,8 +50,8 @@ var CONFIG = {
   practice_absent_folder:  "spoon",
   trials_per_participant: 60,
   break_after_trial: 30,
-  demo_present_image: "demonstration_images/DemonstrationA.png",
-  demo_absent_image:  "demonstration_images/DemonstrationB.png",
+  demo_present_image: "demonstration_images/DemonstrationB.png",
+  demo_absent_image:  "demonstration_images/DemonstrationA.png",
   // All possible prevalences — one is picked randomly at runtime
   prevalence_options: [0.10, 0.30, 0.50, 0.70, 0.90],
 };
@@ -410,45 +410,69 @@ timeline.push({
 });
 
 // ── Demographics survey ───────────────────────────────────────────────────
-timeline.push({
-  type: jsPsychSurvey,
-  survey_json: {
-    showQuestionNumbers: false,
-    elements: [
-      {
-        type: "radiogroup",
-        title: "How old are you?",
-        name: "Age",
-        choices: [
-          "younger than 20",
-          "between 20–30",
-          "between 30–40",
-          "between 40–50",
-          "between 50–60",
-          "older than 60",
-        ],
-      },
-      {
-        type: "radiogroup",
+const trial = {
+ type: jsPsychSurvey,
+ survey_json: {
+   showQuestionNumbers: false,
+   elements:
+     [
+        {
+             type: 'text',
+             title: 'How old are you?',
+             name: 'age',
+             isRequired: true,
+             inputType: 'number',
+             min: 18,
+             max: 120
+           },
+         {
+        type: 'radiogroup',
         title: "What is your gender?",
-        name: "Gender",
-        choices: ["Female", "Male", "Non-binary / other", "Prefer not to say"],
+        name: 'Gender',
+        isRequired: true,
+        choices: [
+          'Female',
+          'Male',
+          'Non-binary'
+        ],
+        hasOther: true,
+        otherText: 'Other (please specify)'
       },
-      {
-        type: "radiogroup",
-        title: "On a scale of 1–5, how accurate do you think you were? (1 = very inaccurate, 5 = very accurate)",
-        name: "Personal_accuracy_perspective",
-        choices: ["1", "2", "3", "4", "5"],
+       {
+      type: 'slider',
+      name: 'perceived_accuracy',
+      title: "What percentage of trials do you think you got correct?",
+      isRequired: true,
+      min: 0,
+      max: 100,
+      step: 1
       },
-      {
-        type: "radiogroup",
-        title: "On a scale of 1–5, how difficult was it to identify the targets? (1 = very easy, 5 = very difficult)",
-        name: "Difficulty_perspective",
-        choices: ["1", "2", "3", "4", "5"],
-      },
-    ],
-  },
-});
+            {
+     type: 'slider',
+  name: 'perceived_prevalence',
+  title: "What percentage of trials do you think contained anomalous objects?",
+  isRequired: true,
+  min: 0,
+  max: 100,
+  step: 1
+         },
+        {
+  type: 'radiogroup',
+  title: "How difficult was it to identify the targets?",
+  name: 'difficulty',
+  isRequired: true,
+  choices: [
+    { value: 1, text: "Very easy" },
+    { value: 2, text: "Easy" },
+    { value: 3, text: "Moderate" },
+    { value: 4, text: "Difficult" },
+    { value: 5, text: "Very difficult" }
+  ]
+}
+   ]
+ }
+};
+timeline.push(trial);
 
 // ── Congratulations ───────────────────────────────────────────────────────
 timeline.push({
