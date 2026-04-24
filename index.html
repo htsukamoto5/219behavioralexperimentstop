@@ -22,6 +22,9 @@
   <!-- Pre-generated trial data (defines global `TRIALS`) -->
   <script src="trials.js"></script>
 
+  <!-- jsPsych Pipe plugin for sending data to a server in real-time -->
+  <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe"></script>
+
   <style>
     body { margin: 0; padding: 0; background: #ffffff; }
     .exp-text {
@@ -42,33 +45,22 @@
 // ═══════════════════════════════════════════════════════════════════════════════
 
 var CONFIG = {
-
-  // Path prefix for all stimuli (keep trailing slash)
   stimuli_base: "stimuli/",
-
-  // ── Practice trial folders ────────────────────────────────────────────────
-  // These two folders are used as practice trials and are automatically
-  // excluded from the experimental trial pool.
-  // Change these strings to point to any folder inside stimuli/present/ or stimuli/absent/.
-  practice_present_folder: "spoons_fork",   // inside stimuli/present/
-  practice_absent_folder:  "spoon",         // inside stimuli/absent/
-
-  // ── Experimental trial pool ───────────────────────────────────────────────
-  // How many experimental trials each participant sees (not counting practice)
+  practice_present_folder: "spoons_fork",
+  practice_absent_folder:  "spoon",
   trials_per_participant: 60,
-
-  // Proportion of trials that should be target-present (0.0 – 1.0).
-  // This gets randomised across participants per your design description.
-  // Options used in the study: 0.10, 0.30, 0.50, 0.70, 0.90
-  target_present_prevalence: 0.50,
-
-  // Break is inserted automatically after this many experimental trials
   break_after_trial: 30,
-
-  // Path to demonstration images (used in the instruction phase)
   demo_present_image: "demonstration_images/DemonstrationA.png",
   demo_absent_image:  "demonstration_images/DemonstrationB.png",
+  // All possible prevalences — one is picked randomly at runtime
+  prevalence_options: [0.10, 0.30, 0.50, 0.70, 0.90],
 };
+
+// ── Pick prevalence randomly at participant start ─────────────────────────
+var target_present_prevalence = CONFIG.prevalence_options[
+  Math.floor(Math.random() * CONFIG.prevalence_options.length)
+];
+console.log("Assigned prevalence:", target_present_prevalence);
 
 // ═══════════════════════════════════════════════════════════════════════════════
 // HELPERS
@@ -84,40 +76,84 @@ function shuffle(arr) {
 }
 
 /**
- * Select experimental trials from allTrials, excluding practice folders,
- * and matching the configured prevalence ratio.
+ * Extract the base category name from a trial ID.
+ * Present trials look like "present_spoons_fork" → base = "spoons"
+ * Absent trials look like "absent_spoon" → base = "spoon"
+ * We match by finding the absent trial's category within the present trial's category,
+ * or we rely on the CATEGORY_MAP label to group them.
+ *
+ * Simpler approach: group by their shared CATEGORY_MAP label.
  */
+function getCategoryLabel(trialData) {
+  var key = trialData.category; // folder name, e.g. "spoons_fork" or "spoon"
+  return (CATEGORY_MAP[key] && CATEGORY_MAP[key].label)
+    ? CATEGORY_MAP[key].label
+    : key;
+}
+
 function selectExperimentalTrials(allTrials) {
-  // Exclude folders used for practice
-  var excluded = [
+  var excludedIds = [
     "present_" + CONFIG.practice_present_folder,
     "absent_"  + CONFIG.practice_absent_folder,
   ];
 
   var pool = allTrials.filter(function (t) {
-    return excluded.indexOf(t.id) === -1;
+    return excludedIds.indexOf(t.id) === -1;
   });
 
   var presentPool = pool.filter(function (t) { return t.target_present; });
   var absentPool  = pool.filter(function (t) { return !t.target_present; });
 
+  // Build a map: label → { present: trial|null, absent: trial|null }
+  // so we can enforce mutual exclusion at the category level
+  var categoryMap = {};
+
+  presentPool.forEach(function (t) {
+    var label = getCategoryLabel(t);
+    if (!categoryMap[label]) categoryMap[label] = { present: null, absent: null };
+    categoryMap[label].present = t;
+  });
+
+  absentPool.forEach(function (t) {
+    var label = getCategoryLabel(t);
+    if (!categoryMap[label]) categoryMap[label] = { present: null, absent: null };
+    categoryMap[label].absent = t;
+  });
+
+  // Only keep categories that have BOTH a present and absent version
+  // (so mutual exclusion can be enforced, and so 10%/90% are feasible)
+  var validLabels = Object.keys(categoryMap).filter(function (label) {
+    return categoryMap[label].present !== null && categoryMap[label].absent !== null;
+  });
+
+  validLabels = shuffle(validLabels);
+
   var n        = CONFIG.trials_per_participant;
-  var nPresent = Math.round(n * CONFIG.target_present_prevalence);
+  var nPresent = Math.round(n * target_present_prevalence);
   var nAbsent  = n - nPresent;
 
-  if (nPresent > presentPool.length) {
-    console.warn("Not enough target-present trials. Using all " + presentPool.length + " available.");
-    nPresent = presentPool.length;
-  }
-  if (nAbsent > absentPool.length) {
-    console.warn("Not enough target-absent trials. Using all " + absentPool.length + " available.");
-    nAbsent = absentPool.length;
+  if (nPresent + nAbsent > validLabels.length) {
+    console.warn(
+      "Not enough unique categories (" + validLabels.length + ") for " +
+      n + " trials. Reducing trial count."
+    );
+    // Scale down proportionally
+    var scale = validLabels.length / n;
+    nPresent = Math.round(nPresent * scale);
+    nAbsent  = validLabels.length - nPresent;
   }
 
-  return shuffle(
-    shuffle(presentPool).slice(0, nPresent).concat(
-    shuffle(absentPool).slice(0, nAbsent))
-  );
+  var selectedTrials = [];
+
+  // Assign each label to either present or absent — never both
+  validLabels.slice(0, nPresent).forEach(function (label) {
+    selectedTrials.push(categoryMap[label].present);
+  });
+  validLabels.slice(nPresent, nPresent + nAbsent).forEach(function (label) {
+    selectedTrials.push(categoryMap[label].absent);
+  });
+
+  return shuffle(selectedTrials);
 }
 
 /** Convert a trials.json entry into a jsPsych trial object */
@@ -158,10 +194,21 @@ function findTrial(allTrials, presenceFolder, categoryFolder) {
 // INIT jsPsych
 // ═══════════════════════════════════════════════════════════════════════════════
 
-var jsPsych = initJsPsych({
-  on_finish: function () {
-    jsPsych.data.get().localSave("csv", "odd_one_out_data.csv");
-  },
+var jsPsych = initJsPsych({});
+
+// Tag all trials with the assigned prevalence
+jsPsych.data.addProperties({
+  assigned_prevalence: target_present_prevalence,
+});
+
+// ── Subject / DataPipe setup ──────────────────────────────────────────────
+const subject_id = jsPsych.randomization.randomID(10);
+const filename   = `${subject_id}.csv`;
+
+// Tag all trials with the subject ID and assigned prevalence
+jsPsych.data.addProperties({
+  subject_id:           subject_id,
+  assigned_prevalence:  target_present_prevalence,
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -194,6 +241,27 @@ experimentalTrials.forEach(function (t) {
 
 // ── TIMELINE ─────────────────────────────────────────────────────────────
 var timeline = [];
+
+// ── Prolific ID ───────────────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychSurvey,
+  survey_json: {
+    showQuestionNumbers: false,
+    elements: [
+      {
+        type: "text",
+        title: "Please enter your Prolific ID:",
+        name: "prolific_id",
+        isRequired: true,
+      },
+    ],
+  },
+  on_finish: function (data) {
+    // Pull the ID out and tag every subsequent trial with it
+    var prolificId = data.response.prolific_id;
+    jsPsych.data.addProperties({ prolific_id: prolificId });
+  },
+});
 
 // ── Preload ───────────────────────────────────────────────────────────────
 timeline.push({
@@ -392,6 +460,32 @@ timeline.push({
     "<p>Press any key to finish and save your data.</p>",
     "</div>",
   ].join(""),
+});
+
+// ── Save data to OSF via DataPipe ─────────────────────────────────────────
+timeline.push({
+  type: jsPsychPipe,
+  action: "save",
+  experiment_id: "FWf3kwfMjnnH",   // ← your DataPipe experiment ID
+  filename: filename,
+  data_string: () => jsPsych.data.get().csv(),
+});
+
+// ── Redirect to Prolific ──────────────────────────────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>Your data has been saved. Thank you for participating!</p>",
+    "<p>You will now be redirected to Prolific.</p>",
+    "<p>If you are not redirected automatically, ",
+    "<a href='https://app.prolific.com/submissions/complete?cc=CZ8HPNTM'>click here</a>.</p>",
+    "</div>",
+  ].join(""),
+  trial_duration: 3000,   // auto-redirects after 3 seconds
+  on_finish: function () {
+    window.location = "https://app.prolific.com/submissions/complete?cc=CZ8HPNTM";
+  },
 });
 
 // ── Run ───────────────────────────────────────────────────────────────────

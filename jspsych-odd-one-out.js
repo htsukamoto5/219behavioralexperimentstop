@@ -261,7 +261,7 @@ var jsPsychOddOneOut = (function (jspsych) {
       display_element.innerHTML = [
         '<div id="oot-wrapper">',
           '<div id="oot-prompt">',
-            'Are ALL of these <span>' + trial.category.toUpperCase() + '</span> ? If not, click the item that does not fit the category.',
+            'Are ALL of these <span>' + trial.category.toUpperCase() + '</span>? If not, click the item that does not fit the category.',
           '</div>',
           '<div id="oot-search-area"></div>',
           '<div id="oot-answer-banner"></div>',
@@ -282,14 +282,44 @@ var jsPsychOddOneOut = (function (jspsych) {
       const areaW = searchArea.offsetWidth;
       const areaH = searchArea.offsetHeight;
       const imgPx = (trial.image_size_percent / 100) * areaW;
+      
+      const PADDING = 0.05; // 5% margin from edges
+      const imgPercent = trial.image_size_percent / 100;
 
-      trial.images.forEach(function (imgData) {
+      // Build a grid with enough cells, then shuffle and assign
+      const n = trial.images.length;
+      const cols = Math.ceil(Math.sqrt(n * (areaW / areaH)));
+      const rows = Math.ceil(n / cols);
+
+      // Generate grid cell centers, add jitter, shuffle
+      const cells = [];
+      for (let r = 0; r < rows; r++) {
+        for (let c = 0; c < cols; c++) {
+          const cx = PADDING + (c + 0.5) * ((1 - 2 * PADDING) / cols);
+          const cy = PADDING + (r + 0.5) * ((1 - 2 * PADDING) / rows);
+          // Add small jitter so it doesn't look like a rigid grid
+          const jitterX = (Math.random() - 0.5) * (0.4 / cols);
+          const jitterY = (Math.random() - 0.5) * (0.4 / rows);
+          cells.push({
+            x: Math.max(PADDING, Math.min(1 - PADDING, cx + jitterX)),
+            y: Math.max(PADDING, Math.min(1 - PADDING, cy + jitterY)),
+          });
+        }
+      }
+      // Shuffle cells
+      for (let i = cells.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [cells[i], cells[j]] = [cells[j], cells[i]];
+      }
+
+      trial.images.forEach(function (imgData, idx) {
         const wrapper = document.createElement("div");
         wrapper.classList.add("oot-img-wrapper");
         wrapper.dataset.file = imgData.file;
 
-        const leftPx = (imgData.x / 100) * areaW - imgPx / 2;
-        const topPx  = (imgData.y / 100) * areaH - imgPx / 2;
+        const pos = cells[idx];
+        const leftPx = pos.x * areaW - imgPx / 2;
+        const topPx  = pos.y * areaH - imgPx / 2;
 
         wrapper.style.width     = imgPx + "px";
         wrapper.style.height    = imgPx + "px";
