@@ -76,6 +76,7 @@ var jsPsychOddOneOut = (function (jspsych) {
     }
 
     trial(display_element, trial) {
+      console.log(trial.target_present, trial.odd_file)
       const self = this;
 
       const trialStartTime = performance.now();
