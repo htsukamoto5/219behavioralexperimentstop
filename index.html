@@ -301,6 +301,10 @@ timeline.push({
   stimulus: [
     "<div class='exp-text'>",
     "<p><strong>Example: one item does NOT fit the category.</strong></p>",
+    "<div style='background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:12px 20px;margin-bottom:16px;font-size:1em;'>",
+    "This is a still image for demonstration only, it is not interactive.",
+    " Press any key to continue. Practice trials where you can click will come shortly.",
+    "</div>",
     "<img style='width:80vw;' src='" + CONFIG.demo_present_image + "' alt='demonstration present' />",
     "<p>Press any key to continue.</p>",
     "</div>",
@@ -313,6 +317,10 @@ timeline.push({
   stimulus: [
     "<div class='exp-text'>",
     "<p><strong>Example: all items fit the category.</strong></p>",
+    "<div style='background:#fff3cd;border:2px solid #ffc107;border-radius:8px;padding:12px 20px;margin-bottom:16px;font-size:1em;'>",
+    "This is a still image for demonstration only, it is not interactive.",
+    " Press any key to continue. Practice trials where you can click will come shortly.",
+    "</div>",
     "<img style='width:80vw;' src='" + CONFIG.demo_absent_image + "' alt='demonstration absent' />",
     "<p>Press any key to continue.</p>",
     "</div>",
@@ -468,6 +476,12 @@ const trial = {
     { value: 4, text: "Difficult" },
     { value: 5, text: "Very difficult" }
   ]
+}, 
+{
+  type: 'comment',
+  name: 'open_feedback',
+  title: 'Do you have any other comments about the study?',
+  isRequired: false,
 }
    ]
  }
