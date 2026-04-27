@@ -10,6 +10,7 @@
   <script src="https://unpkg.com/@jspsych/plugin-fullscreen@2.0.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-preload@2.1.0"></script>
   <script src="https://unpkg.com/@jspsych/plugin-survey@4.0.0"></script>
+  <script src="https://unpkg.com/@jspsych-contrib/plugin-pipe"></script>
   <link href="https://unpkg.com/jspsych@8.2.3/css/jspsych.css" rel="stylesheet" />
   <link href="https://unpkg.com/@jspsych/plugin-survey@4.0.0/css/survey.min.css" rel="stylesheet" />
 
@@ -146,10 +147,17 @@ function findTrial(allTrials, presenceFolder, categoryFolder) {
 // INIT jsPsych
 // ═══════════════════════════════════════════════════════════════════════════════
 
-var jsPsych = initJsPsych({
-  on_finish: function () {
-    jsPsych.data.get().localSave("csv", "odd_one_out_data.csv");
-  },
+var jsPsych = initJsPsych();
+
+// capture info from Prolific
+var subject_id = jsPsych.data.getURLVariable('PROLIFIC_PID');
+var study_id   = jsPsych.data.getURLVariable('STUDY_ID');
+var session_id = jsPsych.data.getURLVariable('SESSION_ID');
+
+jsPsych.data.addProperties({
+  subject_id: subject_id,
+  study_id:   study_id,
+  session_id: session_id,
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -372,6 +380,16 @@ fetch("trials.json")
       },
     });
 
+    // ── Save data to DataPipe ─────────────────────────────────────────────────
+    var filename = (subject_id || jsPsych.randomization.randomID(10)) + ".json";
+    timeline.push({
+      type: jsPsychPipe,
+      action: "save",
+      experiment_id: "REPLACE_WITH_DATAPIPE_EXPERIMENT_ID",
+      filename: filename,
+      data_string: function () { return jsPsych.data.get().json(); },
+    });
+
     // ── Congratulations ───────────────────────────────────────────────────────
     timeline.push({
       type: jsPsychHtmlKeyboardResponse,
@@ -379,9 +397,12 @@ fetch("trials.json")
         "<div class='exp-text'>",
         "<p>Congratulations! You have completed the experiment.</p>",
         "<p>Thank you for your participation!</p>",
-        "<p>Press any key to finish and save your data.</p>",
+        "<p>Press any key to return to Prolific.</p>",
         "</div>",
       ].join(""),
+      on_finish: function () {
+        window.location.href = "https://app.prolific.com/submissions/complete?cc=CZ8HPNTM";
+      },
     });
 
     // ── Run ───────────────────────────────────────────────────────────────────
