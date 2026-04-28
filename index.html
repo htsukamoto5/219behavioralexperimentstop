@@ -312,6 +312,18 @@ timeline.push({
 });
 
 // ── Comprehension check (loops until correct) ─────────────────────────────
+
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>Before the practice trials, please answer two quick questions",
+    " to confirm you understand the task.</p>",
+    "<p>Press any key to continue.</p>",
+    "</div>",
+  ].join(""),
+});
+
 var comprehensionLoop = {
   timeline: [
     {
