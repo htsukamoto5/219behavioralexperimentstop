@@ -157,7 +157,7 @@ function selectExperimentalTrials(allTrials) {
 }
 
 /** Convert a trials.json entry into a jsPsych trial object */
-function makeOddOneOutTrial(trialData, showAnswer) {
+function makeOddOneOutTrial(trialData, showAnswer, trialIndex) {
   // Look up the display label from CATEGORY_MAP using the category folder name
   var categoryKey = trialData.category;
   var categoryLabel = (CATEGORY_MAP[categoryKey] && CATEGORY_MAP[categoryKey].label)
@@ -175,6 +175,7 @@ function makeOddOneOutTrial(trialData, showAnswer) {
     data: {
       trial_id:       trialData.id,
       is_practice:    showAnswer || false,
+      trial_index:   trialIndex,
     },
   };
 }
@@ -270,8 +271,8 @@ timeline.push({
     " (e.g. clothes, shapes, food).</p>",
     "<p>Your task is to identify whether any item does <strong>not</strong> fit that category.</p>",
     "<ul style='text-align:left;display:inline-block;line-height:2'>",
-    "<li>If an item does not fit, <strong>click on it</strong>.</li>",
-    "<li>If all items fit, click the <strong>\"All fit the category\"</strong> button.</li>",
+    "<li>If an item does not fit, <strong>click on it</strong>, then click <strong>Confirm</strong>.</li>",
+    "<li>If all items fit, click the <strong>\"All fit the category\"</strong> button, then click <strong>Confirm</strong>.</li>",
     "</ul>",
     "<p>Press any key to see a demonstration.</p>",
     "</div>",
@@ -309,6 +310,82 @@ timeline.push({
     "</div>",
   ].join(""),
 });
+
+// ── Comprehension check (loops until correct) ─────────────────────────────
+var comprehensionLoop = {
+  timeline: [
+    {
+      type: jsPsychSurvey,
+      survey_json: {
+        showQuestionNumbers: false,
+        elements: [
+          {
+            type: "radiogroup",
+            name: "comp_odd",
+            title: "What should you do if you spot an item that doesn't fit the category?",
+            isRequired: true,
+            choicesOrder: "random",
+            choices: [
+              { value: "correct", text: "Click the odd item, then click Confirm" },
+              { value: "wrong1",  text: "Press the X key on your keyboard" },
+              { value: "wrong2",  text: "Click the All fit the category button" },
+            ],
+          },
+          {
+            type: "radiogroup",
+            name: "comp_all_fit",
+            title: "What should you do if all items fit the category?",
+            isRequired: true,
+            choicesOrder: "random",
+            choices: [
+              { value: "wrong1",  text: "Click any item at random, then click Confirm" },
+              { value: "correct", text: "Click the All fit the category button, then click Confirm" },
+              { value: "wrong2",  text: "Wait for the trial to time out" },
+            ],
+          },
+        ],
+      },
+      on_finish: function (data) {
+        var resp = data.response;
+        var passed = resp.comp_odd === "correct" && resp.comp_all_fit === "correct";
+        data.comprehension_passed = passed;
+        // Store result in a variable the feedback screen can reliably access
+        window._comprehensionPassed = passed;
+      },
+    },
+    // ── Single feedback screen whose content reflects pass or fail ─────────
+    {
+      type: jsPsychHtmlKeyboardResponse,
+      stimulus: function () {
+        if (window._comprehensionPassed) {
+          return [
+            "<div class='exp-text'>",
+            "<p style='color:#16a34a;font-weight:600'>Correct! Well done.</p>",
+            "<p>You're ready to begin the practice trials.</p>",
+            "<p>Press any key to continue.</p>",
+            "</div>",
+          ].join("");
+        } else {
+          return [
+            "<div class='exp-text'>",
+            "<p style='color:#c0392b;font-weight:600'>One or more answers were incorrect.</p>",
+            "<p>Please remember:</p>",
+            "<ul style='text-align:left;display:inline-block;line-height:2'>",
+            "<li>If an item <strong>does not fit</strong>, click it, then click <strong>Confirm</strong>.</li>",
+            "<li>If <strong>all items fit</strong>, click <strong>All fit the category</strong>, then click <strong>Confirm</strong>.</li>",
+            "</ul>",
+            "<p>Press any key to try the questions again.</p>",
+            "</div>",
+          ].join("");
+        }
+      },
+    },
+  ],
+  loop_function: function () {
+    return window._comprehensionPassed === false;
+  },
+};
+timeline.push(comprehensionLoop);
 
 // ── Practice instructions ─────────────────────────────────────────────────
 timeline.push({
@@ -385,7 +462,7 @@ experimentalTrials.forEach(function (trialData, idx) {
     });
   }
 
-  timeline.push(makeOddOneOutTrial(trialData, false));
+  timeline.push(makeOddOneOutTrial(trialData, false, idx + 1));
 });
 
 // ── End of trials ─────────────────────────────────────────────────────────
@@ -471,7 +548,20 @@ const trial = {
 };
 timeline.push(trial);
 
-// ── Save data to OSF via DataPipe ─────────────────────────────────────────
+// ── Saving screen — shown during DataPipe upload ──────────────────────────
+timeline.push({
+  type: jsPsychHtmlKeyboardResponse,
+  stimulus: [
+    "<div class='exp-text'>",
+    "<p>Saving your data, please wait...</p>",
+    "<p style='font-size:0.85em;color:#9090b0'>Do not close this window.</p>",
+    "</div>",
+  ].join(""),
+  trial_duration: 1,   // advances immediately, just renders the screen
+  response_ends_trial: false,
+});
+
+// ── Save data to DataPipe ─────────────────────────────────────────────────
 timeline.push({
   type: jsPsychPipe,
   action: "save",
@@ -480,34 +570,19 @@ timeline.push({
   data_string: () => jsPsych.data.get().csv(),
 });
 
-// ── Congratulations ───────────────────────────────────────────────────────
+// ── Redirect screen ───────────────────────────────────────────────────────
 timeline.push({
   type: jsPsychHtmlKeyboardResponse,
   stimulus: [
     "<div class='exp-text'>",
-    "<p>Congratulations! You have completed the experiment.</p>",
-    "<p>Thank you for your participation!</p>",
-    "<p>Your data has been saved. You will now be redirected to Prolific.</p>",
-    "</div>",
-  ].join(""),
-  trial_duration: 3000,
-  on_finish: function () {
-    window.location = "https://app.prolific.com/submissions/complete?cc=CZ8HPNTM";
-  },
-});
-
-// ── Redirect to Prolific ──────────────────────────────────────────────────
-timeline.push({
-  type: jsPsychHtmlKeyboardResponse,
-  stimulus: [
-    "<div class='exp-text'>",
-    "<p>Your data has been saved. Thank you for participating!</p>",
-    "<p>You will now be redirected to Prolific.</p>",
-    "<p>If you are not redirected automatically, ",
+    "<p style='color:#16a34a;font-weight:600'>Your data has been saved successfully.</p>",
+    "<p>Thank you for participating! You will now be redirected to Prolific.</p>",
+    "<p style='font-size:0.85em;color:#9090b0'>If you are not redirected automatically, ",
     "<a href='https://app.prolific.com/submissions/complete?cc=CZ8HPNTM'>click here</a>.</p>",
     "</div>",
   ].join(""),
-  trial_duration: 3000,   // auto-redirects after 3 seconds
+  trial_duration: 3000,
+  response_ends_trial: false,
   on_finish: function () {
     window.location = "https://app.prolific.com/submissions/complete?cc=CZ8HPNTM";
   },

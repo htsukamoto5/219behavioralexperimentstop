@@ -270,6 +270,7 @@ var jsPsychOddOneOut = (function (jspsych) {
             '<button class="oot-btn" id="oot-all-fit-btn">&#10003; All fit the category</button>',
             '<button class="oot-btn" id="oot-confirm-btn">Confirm &rarr;</button>',
             '<button class="oot-btn" id="oot-continue-btn">Continue &rarr;</button>',
+            '<span id="oot-progress" style="position:absolute;right:20px;font-size:clamp(11px,1.2vw,15px);color:#9090b0;font-family:system-ui,sans-serif;pointer-events:none;">Trial ' + (trial.data.trial_index || '') + ' of ' + CONFIG.trials_per_participant + '</span>',
           '</div>',
         '</div>',
       ].join("");
