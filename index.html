@@ -201,14 +201,18 @@ jsPsych.data.addProperties({
   assigned_prevalence: target_present_prevalence,
 });
 
-// ── Subject / DataPipe setup ──────────────────────────────────────────────
-const subject_id = jsPsych.randomization.randomID(10);
+// ── Subject / DataPipe setup / Integration with Prolific ──────────────────────────────────────────────
+var subject_id = jsPsych.data.getURLVariable('PROLIFIC_PID');
+var study_id   = jsPsych.data.getURLVariable('STUDY_ID');
+var session_id = jsPsych.data.getURLVariable('SESSION_ID');
+
 const filename   = `${subject_id}.csv`;
 
-// Tag all trials with the subject ID and assigned prevalence
 jsPsych.data.addProperties({
-  subject_id:           subject_id,
-  assigned_prevalence:  target_present_prevalence,
+  subject_id:          subject_id,
+  study_id:            study_id,
+  session_id:          session_id,
+  assigned_prevalence: target_present_prevalence,
 });
 
 // ═══════════════════════════════════════════════════════════════════════════════
@@ -241,27 +245,6 @@ experimentalTrials.forEach(function (t) {
 
 // ── TIMELINE ─────────────────────────────────────────────────────────────
 var timeline = [];
-
-// ── Prolific ID ───────────────────────────────────────────────────────────
-timeline.push({
-  type: jsPsychSurvey,
-  survey_json: {
-    showQuestionNumbers: false,
-    elements: [
-      {
-        type: "text",
-        title: "Please enter your Prolific ID:",
-        name: "prolific_id",
-        isRequired: true,
-      },
-    ],
-  },
-  on_finish: function (data) {
-    // Pull the ID out and tag every subsequent trial with it
-    var prolificId = data.response.prolific_id;
-    jsPsych.data.addProperties({ prolific_id: prolificId });
-  },
-});
 
 // ── Preload ───────────────────────────────────────────────────────────────
 timeline.push({
