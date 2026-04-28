@@ -9,9 +9,9 @@ const CATEGORY_MAP = {
   balloon: { label: "BALLOONS" },
   barbiedoll: { label: "BARBIE DOLLS" },
   baseballcard: { label: "BASEBALL CARDS" },
-  bear: { label: "BEARS" },
+  bear: { label: "TEDDY BEARS" },
   benche: { label: "BENCHES" },
-  bike: { label: "BIKES" },
+  bike: { label: "BICYCLES" },
   boot: { label: "BOOTS" },
   bucket: { label: "BUCKETS" },
   butterflie: { label: "BUTTERFLIES" },
@@ -70,7 +70,7 @@ const CATEGORY_MAP = {
   wreath: { label: "WREATHS" },
 
   // ─────────────────────────────
-  // PRESENT (optional: only needed if used for labeling)
+  // PRESENT 
   // ─────────────────────────────
   abacuses_domino: { label: "ABACUSES" },
   apples_ball: { label: "APPLES" },
@@ -79,9 +79,9 @@ const CATEGORY_MAP = {
   balls_yarn: { label: "BALLS" },
   barbiedolls_doll: { label: "BARBIE DOLLS" },
   baseballcards_pokercard: { label: "BASEBALL CARDS" },
-  bears_rabbit: { label: "BEARS" },
+  bears_rabbit: { label: "TEDDY BEARS" },
   benches_chair: { label: "BENCHES" },
-  bikes_tricycle: { label: "BIKES" },
+  bikes_tricycle: { label: "BICYCLES" },
   boots_shoe: { label: "BOOTS" },
   buckets_cup: { label: "BUCKETS" },
   butterflies_bowtie: { label: "BUTTERFLIES" },

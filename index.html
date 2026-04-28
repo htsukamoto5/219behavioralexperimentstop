@@ -471,6 +471,15 @@ const trial = {
 };
 timeline.push(trial);
 
+// ── Save data to OSF via DataPipe ─────────────────────────────────────────
+timeline.push({
+  type: jsPsychPipe,
+  action: "save",
+  experiment_id: "FWf3kwfMjnnH",
+  filename: filename,
+  data_string: () => jsPsych.data.get().csv(),
+});
+
 // ── Congratulations ───────────────────────────────────────────────────────
 timeline.push({
   type: jsPsychHtmlKeyboardResponse,
@@ -478,18 +487,13 @@ timeline.push({
     "<div class='exp-text'>",
     "<p>Congratulations! You have completed the experiment.</p>",
     "<p>Thank you for your participation!</p>",
-    "<p>Press any key to finish and save your data.</p>",
+    "<p>Your data has been saved. You will now be redirected to Prolific.</p>",
     "</div>",
   ].join(""),
-});
-
-// ── Save data to OSF via DataPipe ─────────────────────────────────────────
-timeline.push({
-  type: jsPsychPipe,
-  action: "save",
-  experiment_id: "FWf3kwfMjnnH",   // ← your DataPipe experiment ID
-  filename: filename,
-  data_string: () => jsPsych.data.get().csv(),
+  trial_duration: 3000,
+  on_finish: function () {
+    window.location = "https://app.prolific.com/submissions/complete?cc=CZ8HPNTM";
+  },
 });
 
 // ── Redirect to Prolific ──────────────────────────────────────────────────
