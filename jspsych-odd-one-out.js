@@ -264,7 +264,7 @@ var jsPsychOddOneOut = (function (jspsych) {
       const areaW = searchArea.offsetWidth;
       const areaH = searchArea.offsetHeight;
       const imgPx = (trial.image_size_percent / 100) * areaW;
-      
+
       const PADDING = 0.05; // 5% margin from edges
       const imgPercent = trial.image_size_percent / 100;
 
@@ -273,18 +273,31 @@ var jsPsychOddOneOut = (function (jspsych) {
       const cols = Math.ceil(Math.sqrt(n * (areaW / areaH)));
       const rows = Math.ceil(n / cols);
 
-      // Generate grid cell centers, add jitter, shuffle
+      const cellW = (1 - 2 * PADDING) / cols;
+      const cellH = (1 - 2 * PADDING) / rows;
+
+      // Worst-case axis-aligned bounding box of a rotated square is sqrt(2) * side.
+      // imgPercent is fraction of areaW; convert to fraction of areaH for vertical extent.
+      const ROT_FACTOR = Math.SQRT2;
+      const imgWFrac   = imgPercent * ROT_FACTOR;
+      const imgHFrac   = imgPercent * (areaW / areaH) * ROT_FACTOR;
+
+      // Per-cell jitter clamped so the bounding box stays inside its cell. With both neighbors
+      // at extreme opposite jitter, bounding boxes just touch — never overlap. Small safety
+      // factor in case of sub-pixel rounding.
+      const SAFETY = 0.95;
+      const slackX = Math.max(0, (cellW - imgWFrac) / 2) * SAFETY;
+      const slackY = Math.max(0, (cellH - imgHFrac) / 2) * SAFETY;
+
+      // Generate grid cell centers with bounded jitter, then shuffle
       const cells = [];
       for (let r = 0; r < rows; r++) {
         for (let c = 0; c < cols; c++) {
-          const cx = PADDING + (c + 0.5) * ((1 - 2 * PADDING) / cols);
-          const cy = PADDING + (r + 0.5) * ((1 - 2 * PADDING) / rows);
-          // Add small jitter so it doesn't look like a rigid grid
-          const jitterX = (Math.random() - 0.5) * (0.4 / cols);
-          const jitterY = (Math.random() - 0.5) * (0.4 / rows);
+          const cx = PADDING + (c + 0.5) * cellW;
+          const cy = PADDING + (r + 0.5) * cellH;
           cells.push({
-            x: Math.max(PADDING, Math.min(1 - PADDING, cx + jitterX)),
-            y: Math.max(PADDING, Math.min(1 - PADDING, cy + jitterY)),
+            x: cx + (Math.random() - 0.5) * 2 * slackX,
+            y: cy + (Math.random() - 0.5) * 2 * slackY,
           });
         }
       }
