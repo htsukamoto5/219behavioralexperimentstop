@@ -50,23 +50,24 @@ var jsPsychOddOneOut = (function (jspsych) {
         type: jspsych.ParameterType.FLOAT,
         default: 10,
       },
-      /** If true, reveal the correct answer after the participant confirms, and require a Continue click to advance. */
+      /** If true, reveal the correct answer after the participant clicks, and require a Continue click to advance. */
       show_answer: {
         type: jspsych.ParameterType.BOOL,
         default: false,
       },
+      /** Total number of experimental trials, shown in the progress counter (e.g. "Trial 5 of 60"). */
+      total_trials: {
+        type: jspsych.ParameterType.INT,
+        default: null,
+      },
     },
     data: {
-      /** Participant's confirmed response: either the filename of a clicked image, or the string "all_fit". */
-      response:       { type: jspsych.ParameterType.STRING },
-      /** Whether the confirmed response was correct. */
-      correct:        { type: jspsych.ParameterType.BOOL },
-      /** Time from trial onset to first click (ms). */
-      first_click_rt: { type: jspsych.ParameterType.INT },
-      /** Time from trial onset to the Confirm click (ms). */
-      confirm_rt:     { type: jspsych.ParameterType.INT },
-      /** Time between the first click and the Confirm click (ms). */
-      decision_time:  { type: jspsych.ParameterType.INT },
+      /** Participant's response: either the filename of the clicked image, or the string "all_fit". */
+      response: { type: jspsych.ParameterType.STRING },
+      /** Whether the response was correct. */
+      correct:  { type: jspsych.ParameterType.BOOL },
+      /** Time from trial onset to the response click (ms). */
+      rt:       { type: jspsych.ParameterType.INT },
     },
   };
 
@@ -76,15 +77,12 @@ var jsPsychOddOneOut = (function (jspsych) {
     }
 
     trial(display_element, trial) {
-      console.log(trial.target_present, trial.odd_file)
       const self = this;
 
       const trialStartTime = performance.now();
-      let firstClickTime   = null;
-      let confirmTime      = null;
-      let selectedElement  = null;
-      let selectedResponse = null;
-      let trialCorrect     = null;
+      let response       = null;
+      let responseRT     = null;
+      let trialCorrect   = null;
 
       const style = document.createElement("style");
       style.id = "oot-styles";
@@ -205,24 +203,6 @@ var jsPsychOddOneOut = (function (jspsych) {
           border-color: #4f46e5;
           color: #4f46e5;
         }
-        #oot-all-fit-btn.oot-selected {
-          background: #4f46e5;
-          border-color: #4f46e5;
-          color: #ffffff;
-          box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.22);
-        }
-        #oot-confirm-btn {
-          background: #16a34a;
-          border-color: #16a34a;
-          color: #ffffff;
-          display: none;
-        }
-        #oot-confirm-btn:hover {
-          background: #15803d;
-        }
-        #oot-confirm-btn.oot-visible {
-          display: inline-block;
-        }
         #oot-answer-banner {
           display: none;
           position: absolute;
@@ -262,24 +242,24 @@ var jsPsychOddOneOut = (function (jspsych) {
       display_element.innerHTML = [
         '<div id="oot-wrapper">',
           '<div id="oot-prompt">',
-            'Are ALL of these <span>' + trial.category.toUpperCase() + '</span>? If not, click the item that does not fit the category.',
+            'Are ALL of these <span>' + trial.category + '</span>? If not, click the item that does not fit the category.',
           '</div>',
           '<div id="oot-search-area"></div>',
           '<div id="oot-answer-banner"></div>',
           '<div id="oot-bottom-bar">',
             '<button class="oot-btn" id="oot-all-fit-btn">&#10003; All fit the category</button>',
-            '<button class="oot-btn" id="oot-confirm-btn">Confirm &rarr;</button>',
             '<button class="oot-btn" id="oot-continue-btn">Continue &rarr;</button>',
-            '<span id="oot-progress" style="position:absolute;right:20px;font-size:clamp(11px,1.2vw,15px);color:#9090b0;font-family:system-ui,sans-serif;pointer-events:none;">Trial ' + (trial.data.trial_index || '') + ' of ' + CONFIG.trials_per_participant + '</span>',
+            (trial.data && trial.data.trial_index && trial.total_trials
+              ? '<span id="oot-progress" style="position:absolute;right:20px;font-size:clamp(11px,1.2vw,15px);color:#9090b0;font-family:system-ui,sans-serif;pointer-events:none;">Trial ' + trial.data.trial_index + ' of ' + trial.total_trials + '</span>'
+              : ''),
           '</div>',
         '</div>',
       ].join("");
 
-      const searchArea = display_element.querySelector("#oot-search-area");
-      const allFitBtn  = display_element.querySelector("#oot-all-fit-btn");
-      const confirmBtn = display_element.querySelector("#oot-confirm-btn");
+      const searchArea  = display_element.querySelector("#oot-search-area");
+      const allFitBtn   = display_element.querySelector("#oot-all-fit-btn");
       const continueBtn = display_element.querySelector("#oot-continue-btn");
-      const banner     = display_element.querySelector("#oot-answer-banner");
+      const banner      = display_element.querySelector("#oot-answer-banner");
 
       const areaW = searchArea.offsetWidth;
       const areaH = searchArea.offsetHeight;
@@ -335,35 +315,22 @@ var jsPsychOddOneOut = (function (jspsych) {
 
         wrapper.appendChild(img);
         wrapper.addEventListener("click", function () {
-          handleSelection(wrapper, imgData.file);
+          handleResponse(wrapper, imgData.file);
         });
         searchArea.appendChild(wrapper);
       });
 
       allFitBtn.addEventListener("click", function () {
-        handleSelection(allFitBtn, "all_fit");
+        handleResponse(allFitBtn, "all_fit");
       });
-      confirmBtn.addEventListener("click", handleConfirm);
-      continueBtn.addEventListener("click", handleContinue);
+      continueBtn.addEventListener("click", endTrial);
 
-      function handleSelection(element, responseValue) {
-        if (firstClickTime === null) {
-          firstClickTime = performance.now();
-        }
-        if (selectedElement) {
-          selectedElement.classList.remove("oot-selected");
-        }
-        element.classList.add("oot-selected");
-        selectedElement  = element;
-        selectedResponse = responseValue;
-        confirmBtn.classList.add("oot-visible");
-      }
+      function handleResponse(element, responseValue) {
+        // Lock in the first click — guard against double-clicks or post-feedback clicks.
+        if (response !== null) return;
 
-      function handleConfirm() {
-        if (!selectedElement) return;
-
-        confirmTime = performance.now();
-        const response = selectedResponse;
+        responseRT = performance.now() - trialStartTime;
+        response   = responseValue;
 
         if (trial.target_present) {
           trialCorrect = response === trial.odd_file;
@@ -371,15 +338,14 @@ var jsPsychOddOneOut = (function (jspsych) {
           trialCorrect = response === "all_fit";
         }
 
-        if (trial.show_answer) {
-          display_element.querySelectorAll(".oot-img-wrapper").forEach(function (w) {
-            w.style.pointerEvents = "none";
-          });
-          allFitBtn.style.pointerEvents = "none";
-          confirmBtn.classList.remove("oot-visible");
+        // Disable further interaction
+        display_element.querySelectorAll(".oot-img-wrapper").forEach(function (w) {
+          w.style.pointerEvents = "none";
+        });
+        allFitBtn.style.pointerEvents = "none";
 
-          selectedElement.classList.remove("oot-selected");
-          selectedElement.classList.add(trialCorrect ? "oot-correct" : "oot-incorrect");
+        if (trial.show_answer) {
+          element.classList.add(trialCorrect ? "oot-correct" : "oot-incorrect");
 
           if (!trialCorrect && trial.target_present) {
             display_element.querySelectorAll(".oot-img-wrapper").forEach(function (w) {
@@ -389,9 +355,7 @@ var jsPsychOddOneOut = (function (jspsych) {
             });
           }
           if (!trialCorrect && !trial.target_present) {
-            allFitBtn.classList.remove("oot-selected");
             allFitBtn.classList.add("oot-correct");
-            selectedElement.classList.add("oot-incorrect");
           }
 
           banner.textContent = trialCorrect ? "Correct!" : "Incorrect!";
@@ -399,29 +363,15 @@ var jsPsychOddOneOut = (function (jspsych) {
 
           continueBtn.classList.add("oot-visible");
         } else {
-          endTrial(response);
+          endTrial();
         }
       }
 
-      function handleContinue() {
-        endTrial(selectedResponse);
-      }
-
-      function endTrial(response) {
-        const now = performance.now();
-
+      function endTrial() {
         const trialData = {
-          response:       response,
-          correct:        trialCorrect,
-          first_click_rt: firstClickTime !== null
-                            ? Math.round(firstClickTime - trialStartTime)
-                            : null,
-          confirm_rt:     confirmTime !== null
-                            ? Math.round(confirmTime - trialStartTime)
-                            : Math.round(now - trialStartTime),
-          decision_time:  firstClickTime !== null && confirmTime !== null
-                            ? Math.round(confirmTime - firstClickTime)
-                            : null,
+          response: response,
+          correct:  trialCorrect,
+          rt:       responseRT !== null ? Math.round(responseRT) : null,
         };
 
         const injectedStyle = document.getElementById("oot-styles");

@@ -158,11 +158,12 @@ function selectExperimentalTrials(allTrials) {
 
 /** Convert a trials.json entry into a jsPsych trial object */
 function makeOddOneOutTrial(trialData, showAnswer, trialIndex) {
-  // Look up the display label from CATEGORY_MAP using the category folder name
+  // Look up the display label from CATEGORY_MAP using the category folder name.
+  // CATEGORY_MAP labels are already uppercase, so no further casing is applied.
   var categoryKey = trialData.category;
   var categoryLabel = (CATEGORY_MAP[categoryKey] && CATEGORY_MAP[categoryKey].label)
     ? CATEGORY_MAP[categoryKey].label
-    : trialData.category.toUpperCase(); // fallback to raw folder name
+    : trialData.category; // fallback to raw folder name
 
   return {
     type:           jsPsychOddOneOut,
@@ -172,6 +173,8 @@ function makeOddOneOutTrial(trialData, showAnswer, trialIndex) {
     target_present: trialData.target_present,
     odd_file:       trialData.odd_file,
     show_answer:    showAnswer || false,
+    total_trials:   CONFIG.trials_per_participant,
+    post_trial_gap: 500,
     data: {
       trial_id:       trialData.id,
       is_practice:    showAnswer || false,
@@ -203,7 +206,7 @@ jsPsych.data.addProperties({
 });
 
 // ── Subject / DataPipe setup / Integration with Prolific ──────────────────────────────────────────────
-var subject_id = jsPsych.data.getURLVariable('PROLIFIC_PID');
+var subject_id = jsPsych.data.getURLVariable('PROLIFIC_PID') || jsPsych.randomization.randomID(10);
 var study_id   = jsPsych.data.getURLVariable('STUDY_ID');
 var session_id = jsPsych.data.getURLVariable('SESSION_ID');
 
@@ -271,9 +274,10 @@ timeline.push({
     " (e.g. clothes, shapes, food).</p>",
     "<p>Your task is to identify whether any item does <strong>not</strong> fit that category.</p>",
     "<ul style='text-align:left;display:inline-block;line-height:2'>",
-    "<li>If an item does not fit, <strong>click on it</strong>, then click <strong>Confirm</strong>.</li>",
-    "<li>If all items fit, click the <strong>\"All fit the category\"</strong> button, then click <strong>Confirm</strong>.</li>",
+    "<li>If an item does not fit, <strong>click on it</strong>.</li>",
+    "<li>If all items fit, click the <strong>\"All fit the category\"</strong> button.</li>",
     "</ul>",
+    "<p>Your response is recorded as soon as you click — there is no confirmation step, so click carefully.</p>",
     "<p>Press any key to see a demonstration.</p>",
     "</div>",
   ].join(""),
@@ -289,7 +293,7 @@ timeline.push({
     "This is a still image for demonstration only, it is not interactive.",
     " Press any key to continue. Practice trials where you can click will come shortly.",
     "</div>",
-    "<img style='width:80vw;' src='" + CONFIG.demo_present_image + "' alt='demonstration present' />",
+    "<img style='display:block;margin:0 auto;max-width:100%;max-height:60vh;' src='" + CONFIG.demo_present_image + "' alt='demonstration present' />",
     "<p>Press any key to continue.</p>",
     "</div>",
   ].join(""),
@@ -305,7 +309,7 @@ timeline.push({
     "This is a still image for demonstration only, it is not interactive.",
     " Press any key to continue. Practice trials where you can click will come shortly.",
     "</div>",
-    "<img style='width:80vw;' src='" + CONFIG.demo_absent_image + "' alt='demonstration absent' />",
+    "<img style='display:block;margin:0 auto;max-width:100%;max-height:60vh;' src='" + CONFIG.demo_absent_image + "' alt='demonstration absent' />",
     "<p>Press any key to continue.</p>",
     "</div>",
   ].join(""),
@@ -338,7 +342,7 @@ var comprehensionLoop = {
             isRequired: true,
             choicesOrder: "random",
             choices: [
-              { value: "correct", text: "Click the odd item, then click Confirm" },
+              { value: "correct", text: "Click the odd item" },
               { value: "wrong1",  text: "Press the X key on your keyboard" },
               { value: "wrong2",  text: "Click the All fit the category button" },
             ],
@@ -350,8 +354,8 @@ var comprehensionLoop = {
             isRequired: true,
             choicesOrder: "random",
             choices: [
-              { value: "wrong1",  text: "Click any item at random, then click Confirm" },
-              { value: "correct", text: "Click the All fit the category button, then click Confirm" },
+              { value: "wrong1",  text: "Click any item at random" },
+              { value: "correct", text: "Click the All fit the category button" },
               { value: "wrong2",  text: "Wait for the trial to time out" },
             ],
           },
@@ -359,17 +363,16 @@ var comprehensionLoop = {
       },
       on_finish: function (data) {
         var resp = data.response;
-        var passed = resp.comp_odd === "correct" && resp.comp_all_fit === "correct";
-        data.comprehension_passed = passed;
-        // Store result in a variable the feedback screen can reliably access
-        window._comprehensionPassed = passed;
+        data.comprehension_passed =
+          resp.comp_odd === "correct" && resp.comp_all_fit === "correct";
       },
     },
     // ── Single feedback screen whose content reflects pass or fail ─────────
     {
       type: jsPsychHtmlKeyboardResponse,
       stimulus: function () {
-        if (window._comprehensionPassed) {
+        var passed = jsPsych.data.get().last(1).values()[0].comprehension_passed;
+        if (passed) {
           return [
             "<div class='exp-text'>",
             "<p style='color:#16a34a;font-weight:600'>Correct! Well done.</p>",
@@ -383,8 +386,8 @@ var comprehensionLoop = {
             "<p style='color:#c0392b;font-weight:600'>One or more answers were incorrect.</p>",
             "<p>Please remember:</p>",
             "<ul style='text-align:left;display:inline-block;line-height:2'>",
-            "<li>If an item <strong>does not fit</strong>, click it, then click <strong>Confirm</strong>.</li>",
-            "<li>If <strong>all items fit</strong>, click <strong>All fit the category</strong>, then click <strong>Confirm</strong>.</li>",
+            "<li>If an item <strong>does not fit</strong>, click it.</li>",
+            "<li>If <strong>all items fit</strong>, click the <strong>All fit the category</strong> button.</li>",
             "</ul>",
             "<p>Press any key to try the questions again.</p>",
             "</div>",
@@ -394,10 +397,18 @@ var comprehensionLoop = {
     },
   ],
   loop_function: function () {
-    return window._comprehensionPassed === false;
+    // Re-loop when the most recent comprehension survey was not passed.
+    var lastSurvey = jsPsych.data.get().filter({ trial_type: "survey" }).last(1).values()[0];
+    return lastSurvey && lastSurvey.comprehension_passed === false;
   },
 };
 timeline.push(comprehensionLoop);
+
+// ── Fullscreen (enter before practice so practice and experiment look identical) ─
+timeline.push({
+  type: jsPsychFullscreen,
+  fullscreen_mode: true,
+});
 
 // ── Practice instructions ─────────────────────────────────────────────────
 timeline.push({
@@ -419,7 +430,7 @@ timeline.push({
     " The category will be shown at the top of the screen.</p>",
     "<p>If there is an item that does not fit, click on it.",
     " If all items fit, click the <strong>\"All fit the category\"</strong> button.</p>",
-    "<p>After selecting, click <strong>Confirm</strong> to lock in your answer.</p>",
+    "<p>Your response is recorded as soon as you click, so click carefully.</p>",
     "<p>Press any key to begin the practice.</p>",
     "</div>",
   ].join(""),
@@ -449,12 +460,6 @@ timeline.push({
     "<p>Press any key to begin!</p>",
     "</div>",
   ].join(""),
-});
-
-// ── Fullscreen (start just before experimental trials) ────────────────────
-timeline.push({
-  type: jsPsychFullscreen,
-  fullscreen_mode: true,
 });
 
 // ── Experimental trials with halfway break ────────────────────────────────
@@ -560,20 +565,8 @@ const trial = {
 };
 timeline.push(trial);
 
-// ── Saving screen — shown during DataPipe upload ──────────────────────────
-timeline.push({
-  type: jsPsychHtmlKeyboardResponse,
-  stimulus: [
-    "<div class='exp-text'>",
-    "<p>Saving your data, please wait...</p>",
-    "<p style='font-size:0.85em;color:#9090b0'>Do not close this window.</p>",
-    "</div>",
-  ].join(""),
-  trial_duration: 1,   // advances immediately, just renders the screen
-  response_ends_trial: false,
-});
-
 // ── Save data to DataPipe ─────────────────────────────────────────────────
+// The pipe plugin renders its own "Saving data..." message during the upload.
 timeline.push({
   type: jsPsychPipe,
   action: "save",
