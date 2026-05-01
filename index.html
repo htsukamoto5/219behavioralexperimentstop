@@ -157,7 +157,7 @@ function selectExperimentalTrials(allTrials) {
 }
 
 /** Convert a trials.json entry into a jsPsych trial object */
-function makeOddOneOutTrial(trialData, showAnswer, trialIndex) {
+function makeOddOneOutTrial(trialData, isPractice, experimentalTrialNumber) {
   // Look up the display label from CATEGORY_MAP using the category folder name.
   // CATEGORY_MAP labels are already uppercase, so no further casing is applied.
   var categoryKey = trialData.category;
@@ -172,14 +172,18 @@ function makeOddOneOutTrial(trialData, showAnswer, trialIndex) {
     base_path:      CONFIG.stimuli_base + trialData.presence_folder + "/" + trialData.category + "/",
     target_present: trialData.target_present,
     odd_file:       trialData.odd_file,
-    show_answer:    showAnswer || false,
+    show_answer:    isPractice || false,
     total_trials:   CONFIG.trials_per_participant,
     image_size_percent: 7,
     post_trial_gap: 500,
     data: {
-      trial_id:       trialData.id,
-      is_practice:    showAnswer || false,
-      trial_index:   trialIndex,
+      trial_id:                  trialData.id,
+      is_practice:               isPractice || false,
+      experimental_trial_number: experimentalTrialNumber,
+      target_present:            trialData.target_present,
+      odd_file:                  trialData.odd_file,
+      category_label:            categoryLabel,
+      category_folder:           trialData.category,
     },
   };
 }
@@ -200,11 +204,6 @@ function findTrial(allTrials, presenceFolder, categoryFolder) {
 // ═══════════════════════════════════════════════════════════════════════════════
 
 var jsPsych = initJsPsych({});
-
-// Tag all trials with the assigned prevalence
-jsPsych.data.addProperties({
-  assigned_prevalence: target_present_prevalence,
-});
 
 // ── Subject / DataPipe setup / Integration with Prolific ──────────────────────────────────────────────
 var subject_id = jsPsych.data.getURLVariable('PROLIFIC_PID') || jsPsych.randomization.randomID(10);
